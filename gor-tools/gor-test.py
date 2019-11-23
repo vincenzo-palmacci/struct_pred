@@ -42,7 +42,7 @@ def Main():
 
     args = parser.parse_args()
     
-    model = Gor.load(args.model); w = args.window
+    model = Gor().load(args.model); w = args.window
     if args.inlist:
         inlist = args.inlist
         prediction = testing(w,model,inlist=inlist)

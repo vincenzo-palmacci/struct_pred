@@ -69,12 +69,15 @@ class Gor:
             dssp = self._padding_(data[key]['dssp'])
             pssm = self._padding_(data[key]['pssm'])
             while k <= len(dssp):
-                self.model[self.res.index(dssp[j])] += pssm[i:k]
-                self.sse[self.res.index(dssp[j])] += 1
-                i, j, k = i+1, j+1, k+1
+                if np.sum(pssm[i:k]) != 0:
+                    self.model[self.res.index(dssp[j])] += pssm[i:k]
+                    self.sse[self.res.index(dssp[j])] += 1
+                    i, j, k = i+1, j+1, k+1
+                else:
+                    i, j, k = i+1, j+1, k+1
             i, j, k = 0, self.w//2, self.w
         self.count = sum(self.sse)
-        self._information_() # transorm the model content as described in the information method.
+        self._information_() # transform the model content as described in the information method.
         return self
     
     # Normalize the model dividing each matrix for the total number of
@@ -112,4 +115,4 @@ class Gor:
                 i, k = i+1, k+1
             i, k = 0, self.w
             prediction[key] = prediction.get(key,seq)
-        data.add(prediction,'gor_pred')
+        data.add(prediction,'GOR')
