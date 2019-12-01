@@ -12,6 +12,8 @@ def set_parser(dataset,key,obj,sse):
         while seq[index] == sse and index < (len(seq)-1):
             tmp_list.append(index)
             index +=1
+        if seq[index] == sse:
+            tmp_list.append(index)
         seq_set.append(set(tmp_list))
         index += 1
     return seq_set
