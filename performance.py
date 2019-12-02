@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.metrics import multilabel_confusion_matrix as mcm
 import pandas as pd
 import argparse
-from sov import sov_per_structure, set_parser 
+from sov import sov_per_structure, set_parser, sov_multi
 from math import sqrt
 
 '''
@@ -47,19 +47,26 @@ def conf_matrix(dataset,genre):
         measures[sse[val]].append(mcc(conf_matr[val]))
         measures[sse[val]].append(sen(conf_matr[val]))
         measures[sse[val]].append(ppv(conf_matr[val]))
-        measures[sse[val]].append(sov_per_structure(dataset,genre,sse[val]))
-    Q3 = np.sum([conf_matr[i][1,1]for i in range(3)])/np.sum(conf_matr[0])     
+    sov_scores = sov_multi(dataset,genre)
+    for val in range(3):
+        measures[sse[val]].append(sov_scores[1][sse[val]])
+    Q3 = np.sum([conf_matr[i][1,1]for i in range(3)])/np.sum(conf_matr[0])
+    SOV_mean = sov_scores[0]    
     df = pd.DataFrame(measures,index=['ACC','MCC','SEN','PPV','SOV'])
-    return df,Q3*100 # Return a DataFrame
+    return df,Q3*100,SOV_mean # Return a DataFrame
 
-def compute_deviation(mean,folds,Q3):
-    std_dev_df, std_dev_Q3 = [], []
+def compute_deviation(mean,folds,Q3,SOV):
+    std_dev_df, std_dev_Q3, std_dev_sov = [], [], []
     for val in range(5):
         std_dev_df.append((folds[val].sub(mean[0]))**2)
         std_dev_Q3.append((Q3[val]-mean[1])**2)
+        std_dev_sov.append((SOV[val]-mean[2])**2)
     std_err_df = ((sum(std_dev_df)/4)**(1/2))/sqrt(5)
     std_err_Q3 = ((sum(std_dev_Q3)/4)**(1/2))/sqrt(5)
-    return print ('%s\nQ3 : %s\n'%(std_err_df,std_err_Q3))
+    std_err_sov = ((sum(std_dev_sov)/4)**(1/2))/sqrt(5)
+
+    print ('%s\nQ3 : %s\n'%(std_err_df,std_err_Q3))
+    return print('SOV : %s\n'%(std_err_sov))
 
 # Define the type of operation to perform given the type of
 # option choosen by the user.
@@ -78,21 +85,25 @@ def Main():
     genre = args.genre
     
     if args.infile:
-        folds = [] ; scores = [] 
+        folds = [] ; scores = [] ; sovs = []
         with open(args.infile) as infile:
             for line in infile.readlines():
                 line = line.rstrip()
                 dataset = Dataset.load(line)
                 folds.append(conf_matrix(dataset,genre)[0])
                 scores.append(conf_matrix(dataset,genre)[1])
-                print('%s\nQ3 : %s\n'%(conf_matrix(dataset,genre)[0],conf_matrix(dataset,genre)[1]))
-        mean = sum(folds)/5,sum(scores)/5
-        print ('%s\nQ3 : %s\n'%(mean[0],mean[1]))
-        return compute_deviation(mean,folds,scores)
+                sovs.append(conf_matrix(dataset,genre)[2])
+                print('%s\nQ3 : %s'%(conf_matrix(dataset,genre)[0],conf_matrix(dataset,genre)[1]))
+                print('SOV : %s\n'%(conf_matrix(dataset,genre)[2]))
+        mean = sum(folds)/5,sum(scores)/5,sum(sovs)/5
+        print ('%s\nQ3 : %s'%(mean[0],mean[1]))
+        print ('SOV : %s\n'%(mean[2]))
+        return compute_deviation(mean,folds,scores,sovs)
 
     else:
         dataset = Dataset.load(args.dataset)
-        return print('%s\nQ3 : %s\n'%(conf_matrix(dataset,genre)[0],conf_matrix(dataset,genre)[1]))
+        return print('%s\nQ3 : %s\nSOV : %s\n'%(conf_matrix(dataset,genre)[0],conf_matrix(dataset,genre)[1],conf_matrix(dataset,genre)[2]))
+
 
 
 if __name__ == '__main__':

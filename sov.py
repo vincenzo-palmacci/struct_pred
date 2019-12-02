@@ -19,7 +19,7 @@ def set_parser(dataset,key,obj,sse):
     return seq_set
 
 def sov_per_structure(dataset,genre,sse,step=False):
-    per_seq_sov = []
+    per_seq_sov = [];  all_norm = []; all_sov = []
     for key in dataset:
         obs = set_parser(dataset,key,'dssp',sse)
         pred = set_parser(dataset,key,str(genre),sse)
@@ -37,12 +37,21 @@ def sov_per_structure(dataset,genre,sse,step=False):
             if flag == 1:
                 normalizer += len(s)
         if normalizer:
+            all_norm.append(normalizer); all_sov.append(sum(tmp_list))
             tmp_list = sum(tmp_list)*100*(1/normalizer)
             per_seq_sov.append(tmp_list)
-    return sum(per_seq_sov)/len(per_seq_sov)
+    return sum(per_seq_sov)/len(per_seq_sov), sum(all_norm), sum(all_sov)
 
 def sov_multi(dataset,genre):
-    pass
+    sse_list = ['H','E','-']
+    sse_dict = {'H':0,'E':0,'-':0}
+    normTOT = 0; sovTOT = 0
+    for sse in sse_list:
+        sse_dict[sse] = sov_per_structure(dataset,genre,sse)[0]
+        normTOT += sov_per_structure(dataset,genre,sse)[1]
+        sovTOT += sov_per_structure(dataset,genre,sse)[2]
+    total = 1/(normTOT)*sovTOT*100
+    return total,sse_dict
 
 # Define the type of operation to perform given the type of
 # option choosen by the user.
@@ -57,9 +66,10 @@ def Main():
 
     sse_list = ['H','E','-'] ; dataset = Dataset.load(args.dataset) ; genre = args.genre
 
-    for sse in sse_list:
-        print ('%s : %s'%(sse,sov_per_structure(dataset,genre,sse)))
+    per_structure_dict =  sov_multi(dataset,genre)[1]
+    for key in per_structure_dict.keys(): 
+        print ('%s : %s' %(key,per_structure_dict[key]))
+    return print('Mean SOV : %s' %(sov_multi(dataset,genre)[0]))
 
 if __name__ == '__main__':
     Main()
-    print ('TO BE COMPLETED: Multiclass SOV')
